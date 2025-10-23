@@ -1,4 +1,4 @@
-package dev.yourorg.bot;
+package dev.dimitra.bot;
 
 import dev.dimitra.bot.model.ChangedFile;
 import dev.dimitra.bot.model.PRDiffSummary;
