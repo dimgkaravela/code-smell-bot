@@ -30,7 +30,7 @@ jobs:
           REPOSITORY: ${{ github.repository }}
           PR_NUMBER: ${{ github.event.pull_request.number }}
         run: |
-          java -cp target/classes:$(dependency:list -DincludeScope=runtime -Dskip=true -DoutputAbsoluteArtifactFilename -DincludeTypes=jar -DexcludeTransitive=false -DexcludeGroupIds=org.apache.maven) dev.yourorg.bot.Main || \
+          java -cp target/classes:$(dependency:list -DincludeScope=runtime -Dskip=true -DoutputAbsoluteArtifactFilename -DincludeTypes=jar -DexcludeTransitive=false -DexcludeGroupIds=org.apache.maven) dev.dimitra.bot.Main || \
           java -jar target/*.jar
 
       - name: Upload diff JSON
