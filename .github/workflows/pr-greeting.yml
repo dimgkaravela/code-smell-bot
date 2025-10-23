@@ -1,0 +1,26 @@
+name: PR Greeting
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+jobs:
+  greet:
+    runs-on: ubuntu-latest
+    permissions:
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/github-script@v7
+        with:
+          script: |
+            const body = [
+              '👋 **Code Smell Bot** is online.',
+              '',
+              '- CI built & tested your changes.',
+              '- Next: hook diff parsing + LLM calls.'
+            ].join('\n');
+            github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.payload.pull_request.number,
+              body
+            });
