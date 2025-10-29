@@ -16,6 +16,10 @@ public class Main {
         String prNumStr = env("PR_NUMBER");
         int prNumber = Integer.parseInt(prNumStr);
 
+        boolean postComment   = boolEnv("POST_COMMENT", true);
+        boolean fetchContents = boolEnv("FETCH_CONTENTS", true);
+        int maxFilesList      = intEnv("MAX_FILES", 10);
+
         GitHubClient gh = new GitHubClient(token, repo);
         List<ChangedFile> files = gh.listPullRequestFiles(prNumber);
 
@@ -34,10 +38,20 @@ public class Main {
                 summary.prNumber, summary.repository, summary.totalFiles, summary.javaFiles,
                 summary.javaFilesWithPatch, summary.totalAdditions, summary.totalDeletions);
 
-        // Optional: emit a short listing
-        summary.javaChangedFiles.stream().limit(20).forEach(f ->
-                System.out.printf(" - [%s] %s (Δ+%d/-%d)%n", f.status, f.filename, f.additions, f.deletions)
-        );
+        // Day 3: fetch file contents
+        if (fetchContents) {
+            FileContentFetcher fetcher = new FileContentFetcher(gh);
+            int saved = fetcher.fetchAndSaveJavaFiles(summary.javaChangedFiles);
+            System.out.println("Saved head contents for Java files: " + saved);
+        }
+
+        // Day 3: comment on the PR
+        if (postComment) {
+            PRCommenter commenter = new PRCommenter();
+            String md = commenter.buildSummaryMarkdown(repo, prNumber, summary.javaChangedFiles, maxFilesList);
+            gh.postIssueComment(prNumber, md);
+            System.out.println("Posted PR summary comment.");
+        }
 
         System.out.println("Wrote: " + out.getPath());
     }
@@ -48,5 +62,15 @@ public class Main {
             throw new IOException("Missing required env var: " + key);
         }
         return v;
+    }
+
+     private static boolean boolEnv(String key, boolean def) {
+        String v = System.getenv(key);
+        return (v == null || v.isBlank()) ? def : v.equalsIgnoreCase("true");
+    }
+    private static int intEnv(String key, int def) {
+        String v = System.getenv(key);
+        if (v == null || v.isBlank()) return def;
+        try { return Integer.parseInt(v); } catch (Exception e) { return def; }
     }
 }
