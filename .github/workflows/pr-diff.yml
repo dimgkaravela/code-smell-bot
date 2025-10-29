@@ -24,12 +24,24 @@ jobs:
       - name: Build (shaded jar)
         run: mvn -q -DskipTests package
 
+      - name: List build outputs
+        run: ls -lah target
+
       - name: Run PR diff collector
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           REPOSITORY: ${{ github.repository }}
           PR_NUMBER: ${{ github.event.pull_request.number }}
-        run: java -jar target/*-shaded.jar
+        run: |
+          set -e
+          # Prefer a *-shaded.jar if it exists; otherwise use the only/first jar
+          JAR="$(ls -1 target/*-shaded.jar 2>/dev/null || true)"
+          if [ -z "$JAR" ]; then
+            JAR="$(ls -1 target/*.jar | head -n 1)"
+          fi
+          echo "Running: $JAR"
+          java -jar "$JAR"
+
 
       - name: Upload diff JSON
         uses: actions/upload-artifact@v4
