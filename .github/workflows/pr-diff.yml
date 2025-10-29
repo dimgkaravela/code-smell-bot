@@ -1,40 +1,21 @@
-name: PR Diff Collector (Day 2)
+- name: Set up Java
+  uses: actions/setup-java@v4
+  with:
+    distribution: temurin
+    java-version: '21'
 
-on:
-  pull_request:
-    types: [opened, synchronize, reopened]
+- name: Build (shaded jar)
+  run: mvn -q -DskipTests package
 
-permissions:
-  contents: read
-  pull-requests: read
+- name: Run PR diff collector
+  env:
+    GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    REPOSITORY: ${{ github.repository }}
+    PR_NUMBER: ${{ github.event.pull_request.number }}
+  run: java -jar target/*-shaded.jar
 
-jobs:
-  collect-diff:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Set up Java
-        uses: actions/setup-java@v4
-        with:
-          distribution: 'temurin'
-          java-version: '21'
-
-      - name: Build
-        run: mvn -q -DskipTests package
-
-      - name: Run PR diff collector
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          REPOSITORY: ${{ github.repository }}
-          PR_NUMBER: ${{ github.event.pull_request.number }}
-        run: |
-          java -cp target/classes:$(dependency:list -DincludeScope=runtime -Dskip=true -DoutputAbsoluteArtifactFilename -DincludeTypes=jar -DexcludeTransitive=false -DexcludeGroupIds=org.apache.maven) dev.dimitra.bot.Main || \
-          java -jar target/*.jar
-
-      - name: Upload diff JSON
-        uses: actions/upload-artifact@v4
-        with:
-          name: pr-diff
-          path: out/pr_diff.json
+- name: Upload diff JSON
+  uses: actions/upload-artifact@v4
+  with:
+    name: pr-diff
+    path: out/pr_diff.json
