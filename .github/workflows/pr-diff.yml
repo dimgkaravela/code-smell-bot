@@ -1,4 +1,4 @@
-name: PR Diff Collector (Day 2)
+name: PR Diff Collector (Day 3)
 
 on:
   pull_request:
@@ -6,7 +6,7 @@ on:
 
 permissions:
   contents: read
-  pull-requests: read
+  pull-requests: write # needed to post a comment
 
 jobs:
   collect-diff:
@@ -32,9 +32,11 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           REPOSITORY: ${{ github.repository }}
           PR_NUMBER: ${{ github.event.pull_request.number }}
+          POST_COMMENT: "true"
+          FETCH_CONTENTS: "true"
+          MAX_FILES: "10"
         run: |
           set -e
-          # Prefer a *-shaded.jar if it exists; otherwise use the only/first jar
           JAR="$(ls -1 target/*-shaded.jar 2>/dev/null || true)"
           if [ -z "$JAR" ]; then
             JAR="$(ls -1 target/*.jar | head -n 1)"
@@ -48,3 +50,11 @@ jobs:
         with:
           name: pr-diff
           path: out/pr_diff.json
+
+
+      - name: Upload fetched files (head)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: pr-files
+          path: out/files
