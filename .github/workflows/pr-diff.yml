@@ -6,7 +6,7 @@ on:
 
 permissions:
   contents: read
-  pull-requests: write # needed to post a comment
+  pull-requests: write  # needed to post a comment
 
 jobs:
   collect-diff:
