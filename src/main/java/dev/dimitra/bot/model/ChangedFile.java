@@ -14,12 +14,19 @@ public class ChangedFile {
     @JsonProperty("previous_filename")        // <— map snake_case → camelCase
     public String previousFilename;
 
+     @JsonProperty("raw_url")
+    public String rawUrl;
+
+    @JsonProperty("contents_url")
+    public String contentsUrl;
+
     public String patch; // may be null for binary / large files
 
     // convenience
     public boolean isJavaFile() {
         return filename != null && filename.endsWith(".java");
     }
+
     public boolean isTextual() {
         return patch != null && !patch.isBlank();
     }
