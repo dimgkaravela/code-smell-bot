@@ -3,14 +3,19 @@ package dev.dimitra.bot;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.ObjectWriter;
 
 import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.time.Duration;
-import java.util.*;
+import java.util.List;
 import java.util.stream.Collectors;
+
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 
 public class Main {
     // ---- ENTRY POINT ----
@@ -40,7 +45,7 @@ public class Main {
                 .uri(URI.create(url))
                 .timeout(Duration.ofSeconds(30))
                 .header("Accept", "application/vnd.github+json")
-                .header("Authorization", "token " + token)
+                .header("Authorization", "token " + token) // μπορείς και "Bearer "
                 .GET()
                 .build();
 
@@ -49,7 +54,7 @@ public class Main {
             fail("GitHub API error: HTTP " + res.statusCode() + " -> " + res.body());
         }
 
-        List<ChangedFile> files = mapper.readValue(res.body(), new TypeReference<>() {});
+        List<ChangedFile> files = mapper.readValue(res.body(), new TypeReference<List<ChangedFile>>() {});
         if (files.size() > maxFiles) {
             files = files.subList(0, maxFiles);
         }
@@ -76,16 +81,26 @@ public class Main {
         report.javaFilesWithPatch = javaWithPatch;
         report.javaChangedFiles = javaFiles.stream()
                 .map(f -> new JavaChanged(
-                        f.filename, nvl(f.status, "?"),
+                        nvl(f.filename, "?"), nvl(f.status, "?"),
                         safeInt(f.additions), safeInt(f.deletions),
                         safeInt(f.changes),
                         // για MVP κόβουμε το patch σε μικρό preview για καθαρό stdout
                         previewPatch(f.patch, 400)
                 ))
-                .collect(Collectors.toList());
+                .toList();
 
-        // 4) Print JSON to stdout
-        System.out.println(mapper.writeValueAsString(report));
+        // 4) Γράψε artifacts ΠΡΙΝ το stdout (έτσι ικανοποιείται το workflow)
+        Path outDir = Paths.get("out");
+        Files.createDirectories(outDir);
+        Path outJson = outDir.resolve("pr_diff.json");
+        ObjectWriter pretty = mapper.writerWithDefaultPrettyPrinter();
+        Files.writeString(outJson, pretty.writeValueAsString(report));
+
+        // ensure out/files exists (ακόμη κι αν άδειο)
+        Files.createDirectories(outDir.resolve("files"));
+
+        // 5) Print JSON to stdout (χρήσιμο στα logs)
+        System.out.println(pretty.writeValueAsString(report));
     }
 
     // ---- Simple helpers (keep Main single-file & easy) ----
@@ -142,21 +157,6 @@ public class Main {
             this.changes = changes;
             this.patchPreview = patchPreview;
         }
-            // ensure output dir & write pr_diff.json
-    java.nio.file.Path outDir = java.nio.file.Paths.get("out");
-    java.nio.file.Files.createDirectories(outDir);
-    java.nio.file.Path outJson = outDir.resolve("pr_diff.json");
-    
-    // pretty JSON
-    com.fasterxml.jackson.databind.ObjectMapper pretty = new com.fasterxml.jackson.databind.ObjectMapper();
-    pretty.writerWithDefaultPrettyPrinter().writeValue(outJson.toFile(), report);
-    
-    // ensure out/files exists even if we didn't fetch contents in this simplified version
-    java.nio.file.Files.createDirectories(outDir.resolve("out/files".replace("out/","")));
-    
-    // also keep printing to stdout (helpful in logs)
-    System.out.println(pretty.writeValueAsString(report));
-            
     }
 
     static class Report {
@@ -169,7 +169,4 @@ public class Main {
         public int javaFilesWithPatch;
         public List<JavaChanged> javaChangedFiles;
     }
-
-
-
 }
