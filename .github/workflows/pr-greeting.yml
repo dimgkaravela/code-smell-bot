@@ -15,7 +15,7 @@ jobs:
             const body = [
               '👋 **Code Smell Bot** is online.',
               '',
-              '- CI built & tested your changes.'.
+              '- CI built & tested your changes.'
               
             ].join('\n');
             github.rest.issues.createComment({
