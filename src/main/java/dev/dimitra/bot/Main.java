@@ -263,7 +263,7 @@ public class Main {
         public Integer changes;
         public String patch; // may be null for binary files
     }
-
+//trigger the bot
     static class JavaChanged {
         public String filename;
         public String status;
