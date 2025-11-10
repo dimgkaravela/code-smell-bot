@@ -130,6 +130,8 @@ public class Main {
         return patch.length() <= maxChars ? patch : patch.substring(0, maxChars) + "\n... (truncated)";
     }
 
+    //added comment to trigger bot
+
     // ---- Minimal DTOs (JSON mapping) ----
     @JsonIgnoreProperties(ignoreUnknown = true)
     static class ChangedFile {
