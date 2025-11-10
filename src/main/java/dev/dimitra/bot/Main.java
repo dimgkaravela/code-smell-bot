@@ -1,80 +1,157 @@
 package dev.dimitra.bot;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import dev.dimitra.bot.model.ChangedFile;
-import dev.dimitra.bot.model.PRDiffSummary;
 
-import java.io.File;
-import java.io.IOException;
-import java.nio.file.Files;
-import java.util.List;
+import java.net.URI;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
+import java.time.Duration;
+import java.util.*;
+import java.util.stream.Collectors;
 
 public class Main {
+    // ---- ENTRY POINT ----
     public static void main(String[] args) throws Exception {
-        String token = env("GITHUB_TOKEN");
-        String repo = env("REPOSITORY"); // "owner/repo"
-        String prNumStr = env("PR_NUMBER");
-        int prNumber = Integer.parseInt(prNumStr);
+        String token = reqEnv("GITHUB_TOKEN");
+        String repository = reqEnv("REPOSITORY");       // "owner/repo"
+        int prNumber = intEnv("PR_NUMBER", -1);
+        int maxFiles = intEnv("MAX_FILES", 50);
+        if (prNumber <= 0) fail("PR_NUMBER must be > 0");
 
-        boolean postComment   = boolEnv("POST_COMMENT", true);
-        boolean fetchContents = boolEnv("FETCH_CONTENTS", true);
-        int maxFilesList      = intEnv("MAX_FILES", 10);
+        String[] parts = repository.split("/");
+        if (parts.length != 2) fail("REPOSITORY must be 'owner/repo'");
+        String owner = parts[0], repo = parts[1];
 
-        GitHubClient gh = new GitHubClient(token, repo);
-        List<ChangedFile> files = gh.listPullRequestFiles(prNumber);
-
-        PRDiffSummary summary = new PullRequestDiffCollector().buildSummary(repo, prNumber, files);
-
-        // ensure output dir
-        File outDir = new File("out");
-        if (!outDir.exists()) Files.createDirectories(outDir.toPath());
-        File out = new File(outDir, "pr_diff.json");
-
+        HttpClient http = HttpClient.newBuilder()
+                .connectTimeout(Duration.ofSeconds(15))
+                .build();
         ObjectMapper mapper = new ObjectMapper();
-        mapper.writerWithDefaultPrettyPrinter().writeValue(out, summary);
 
-        // Log a simple summary for humans
-        System.out.printf("PR #%d in %s: %d files total | %d Java files | %d Java files with patch | +%d -%d%n",
-                summary.prNumber, summary.repository, summary.totalFiles, summary.javaFiles,
-                summary.javaFilesWithPatch, summary.totalAdditions, summary.totalDeletions);
+        // 1) Fetch changed files (1 σελίδα μέχρι maxFiles, απλό MVP)
+        int perPage = Math.min(100, Math.max(1, maxFiles));
+        String url = String.format(
+                "https://api.github.com/repos/%s/%s/pulls/%d/files?per_page=%d",
+                owner, repo, prNumber, perPage);
 
-        // Day 3: fetch file contents
-        if (fetchContents) {
-            FileContentFetcher fetcher = new FileContentFetcher(gh);
-            int saved = fetcher.fetchAndSaveJavaFiles(summary.javaChangedFiles);
-            System.out.println("Saved head contents for Java files: " + saved);
+        HttpRequest req = HttpRequest.newBuilder()
+                .uri(URI.create(url))
+                .timeout(Duration.ofSeconds(30))
+                .header("Accept", "application/vnd.github+json")
+                .header("Authorization", "token " + token)
+                .GET()
+                .build();
+
+        HttpResponse<String> res = http.send(req, HttpResponse.BodyHandlers.ofString());
+        if (res.statusCode() / 100 != 2) {
+            fail("GitHub API error: HTTP " + res.statusCode() + " -> " + res.body());
         }
 
-        // Day 3: comment on the PR
-        if (postComment) {
-            PRCommenter commenter = new PRCommenter();
-            String md = commenter.buildSummaryMarkdown(repo, prNumber, summary.javaChangedFiles, maxFilesList);
-            gh.postIssueComment(prNumber, md);
-            System.out.println("Posted PR summary comment.");
+        List<ChangedFile> files = mapper.readValue(res.body(), new TypeReference<>() {});
+        if (files.size() > maxFiles) {
+            files = files.subList(0, maxFiles);
         }
 
-        System.out.println("Wrote: " + out.getPath());
+        // 2) Compute simple metrics
+        int totalFiles = files.size();
+        int totalAdditions = files.stream().mapToInt(f -> safeInt(f.additions)).sum();
+        int totalDeletions = files.stream().mapToInt(f -> safeInt(f.deletions)).sum();
+
+        List<ChangedFile> javaFiles = files.stream()
+                .filter(f -> f.filename != null && f.filename.endsWith(".java"))
+                .collect(Collectors.toList());
+        int javaFilesCount = javaFiles.size();
+        int javaWithPatch = (int) javaFiles.stream().filter(f -> f.patch != null && !f.patch.isBlank()).count();
+
+        // 3) Build tiny report
+        Report report = new Report();
+        report.repository = repository;
+        report.prNumber = prNumber;
+        report.totalFiles = totalFiles;
+        report.totalAdditions = totalAdditions;
+        report.totalDeletions = totalDeletions;
+        report.javaFiles = javaFilesCount;
+        report.javaFilesWithPatch = javaWithPatch;
+        report.javaChangedFiles = javaFiles.stream()
+                .map(f -> new JavaChanged(
+                        f.filename, nvl(f.status, "?"),
+                        safeInt(f.additions), safeInt(f.deletions),
+                        safeInt(f.changes),
+                        // για MVP κόβουμε το patch σε μικρό preview για καθαρό stdout
+                        previewPatch(f.patch, 400)
+                ))
+                .collect(Collectors.toList());
+
+        // 4) Print JSON to stdout
+        System.out.println(mapper.writeValueAsString(report));
     }
 
-    private static String env(String key) throws IOException {
+    // ---- Simple helpers (keep Main single-file & easy) ----
+    private static String reqEnv(String key) {
         String v = System.getenv(key);
-        if (v == null || v.isBlank()) {
-            throw new IOException("Missing required env var: " + key);
-        }
+        if (v == null || v.isBlank()) fail("Missing ENV: " + key);
         return v;
     }
 
-     private static boolean boolEnv(String key, boolean def) {
-        String v = System.getenv(key);
-        return (v == null || v.isBlank()) ? def : v.equalsIgnoreCase("true");
-    }
     private static int intEnv(String key, int def) {
         String v = System.getenv(key);
         if (v == null || v.isBlank()) return def;
-        try { return Integer.parseInt(v); } catch (Exception e) { return def; }
+        try { return Integer.parseInt(v.trim()); }
+        catch (Exception e) { return def; }
     }
 
+    private static void fail(String msg) {
+        System.err.println("[ERROR] " + msg);
+        System.exit(1);
+    }
 
+    private static int safeInt(Integer i) { return i == null ? 0 : i; }
+    private static String nvl(String s, String d) { return (s == null || s.isBlank()) ? d : s; }
 
-    //added a comment to trigger the test
+    private static String previewPatch(String patch, int maxChars) {
+        if (patch == null) return null;
+        return patch.length() <= maxChars ? patch : patch.substring(0, maxChars) + "\n... (truncated)";
+    }
+
+    // ---- Minimal DTOs (JSON mapping) ----
+    @JsonIgnoreProperties(ignoreUnknown = true)
+    static class ChangedFile {
+        public String filename;
+        public String status;
+        public Integer additions;
+        public Integer deletions;
+        public Integer changes;
+        public String patch; // μπορεί να είναι null (π.χ. binary)
+    }
+
+    static class JavaChanged {
+        public String filename;
+        public String status;
+        public int additions;
+        public int deletions;
+        public int changes;
+        public String patchPreview;
+
+        public JavaChanged(String filename, String status, int additions, int deletions, int changes, String patchPreview) {
+            this.filename = filename;
+            this.status = status;
+            this.additions = additions;
+            this.deletions = deletions;
+            this.changes = changes;
+            this.patchPreview = patchPreview;
+        }
+    }
+
+    static class Report {
+        public String repository;
+        public int prNumber;
+        public int totalFiles;
+        public int totalAdditions;
+        public int totalDeletions;
+        public int javaFiles;
+        public int javaFilesWithPatch;
+        public List<JavaChanged> javaChangedFiles;
+    }
 }
