@@ -12,6 +12,8 @@ import java.time.Duration;
 import java.util.*;
 import java.util.stream.Collectors;
 
+
+//added this comment to trigger the bot
 public class Main {
     // ---- ENTRY POINT ----
     public static void main(String[] args) throws Exception {
@@ -154,6 +156,8 @@ public class Main {
         public int javaFilesWithPatch;
         public List<JavaChanged> javaChangedFiles;
     }
+
+    //added this comment ot trigger the bot
 
     // ensure output dir & write pr_diff.json
 java.nio.file.Path outDir = java.nio.file.Paths.get("out");
