@@ -108,7 +108,7 @@ public class Main {
 
         // 5) Print JSON to stdout (χρήσιμο στα logs)
         System.out.println(pretty.writeValueAsString(report));
-    }
+    
 
      // 5) ----- LLM ANALYSIS -----
         // Build system + user content from the patches
