@@ -14,6 +14,7 @@ import java.util.stream.Collectors;
 
 public class Main {
     // ---- ENTRY POINT ----
+    //added a comment here too
     public static void main(String[] args) throws Exception {
         String token = reqEnv("GITHUB_TOKEN");
         String repository = reqEnv("REPOSITORY");       // "owner/repo"
@@ -79,7 +80,7 @@ public class Main {
                         f.filename, nvl(f.status, "?"),
                         safeInt(f.additions), safeInt(f.deletions),
                         safeInt(f.changes),
-                        // για MVP κόβουμε το patch σε μικρό preview για καθαρό stdout
+                        // gia MVP kovoume to patch se mikro preview gia clean stdout
                         previewPatch(f.patch, 400)
                 ))
                 .collect(Collectors.toList());
@@ -123,7 +124,7 @@ public class Main {
         public Integer additions;
         public Integer deletions;
         public Integer changes;
-        public String patch; // μπορεί να είναι null (π.χ. binary)
+        public String patch; // can be null (px binary)
     }
 
     static class JavaChanged {
@@ -154,4 +155,6 @@ public class Main {
         public int javaFilesWithPatch;
         public List<JavaChanged> javaChangedFiles;
     }
+
+    //added a comment here to trigger it
 }
