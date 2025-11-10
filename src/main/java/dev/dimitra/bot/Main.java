@@ -12,10 +12,7 @@ public class Main {
         var postComment = Boolean.parseBoolean(System.getenv().getOrDefault("POST_COMMENT","true"));
         int maxFiles = Integer.parseInt(System.getenv().getOrDefault("MAX_FILES","10"));
 
-        // 1) fetch diff (you already have this)
-        var gh = new GitHubClient(token, repo);
-        var files = gh.listChangedFiles(prNum, maxFiles, /*fetchContents*/ true); // make sure patch is included
-
+       
         // 2) set up LLM
         var llm = LlmRouter.fromEnv();
         var analyzer = new SmellAnalyzer(llm,
