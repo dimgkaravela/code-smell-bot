@@ -154,4 +154,20 @@ public class Main {
         public int javaFilesWithPatch;
         public List<JavaChanged> javaChangedFiles;
     }
+
+    // ensure output dir & write pr_diff.json
+java.nio.file.Path outDir = java.nio.file.Paths.get("out");
+java.nio.file.Files.createDirectories(outDir);
+java.nio.file.Path outJson = outDir.resolve("pr_diff.json");
+
+// pretty JSON
+com.fasterxml.jackson.databind.ObjectMapper pretty = new com.fasterxml.jackson.databind.ObjectMapper();
+pretty.writerWithDefaultPrettyPrinter().writeValue(outJson.toFile(), report);
+
+// ensure out/files exists even if we didn't fetch contents in this simplified version
+java.nio.file.Files.createDirectories(outDir.resolve("out/files".replace("out/","")));
+
+// also keep printing to stdout (helpful in logs)
+System.out.println(pretty.writeValueAsString(report));
+
 }
