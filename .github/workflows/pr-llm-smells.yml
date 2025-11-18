@@ -48,6 +48,7 @@ jobs:
           LLM_MODEL: gpt-4o-mini    # or your preferred model
           #CLAUDE_API_KEY: ${{ secrets.CLAUDE_API_KEY }}
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          OPENAI_BASE_URL: "https://api.openai.com/v1"
           # DEEPSEEK_API_KEY: ${{ secrets.DEEPSEEK_API_KEY }}
 
           # Optional router overrides
