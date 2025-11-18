@@ -10,11 +10,13 @@ on:
       provider:
         description: "LLM provider (claude|openai|deepseek)"
         required: false
-        default: "claude"
+        default: "openai"
       model:
         description: "LLM model name"
         required: false
-        default: "claude-3-5-sonnet"
+        # If you want 'max ChatGPT', keep gpt-5.
+        # If you prefer cheaper, use gpt-4.1-mini instead.
+        default: "gpt-5"
       max_files:
         description: "Max changed files to fetch"
         required: false
@@ -37,7 +39,8 @@ jobs:
           java-version: '21'
           cache: 'maven'
 
-      - run: mvn -q -DskipTests package
+      - name: Build jar
+        run: mvn -q -DskipTests package
 
       - name: Run bot on provided PR
         env:
@@ -50,10 +53,17 @@ jobs:
           LLM_MODEL: ${{ inputs.model }}
 
           # keys (enable only the provider you use)
-          CLAUDE_API_KEY: ${{ secrets.CLAUDE_API_KEY }}
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
-          DEEPSEEK_API_KEY: ${{ secrets.DEEPSEEK_API_KEY }}
+          #CLAUDE_API_KEY: ${{ secrets.CLAUDE_API_KEY }}
+          #DEEPSEEK_API_KEY: ${{ secrets.DEEPSEEK_API_KEY }}
         run: |
           set -e
-          JAR="$(ls -1 target/*-shaded.jar | head -n1)"
+
+          echo "Contents of target directory:"
+          ls -lah target
+
+          # Pick the first jar produced by Maven (your project creates a normal JAR, not *-shaded.jar)
+          JAR="$(ls -1 target/*.jar | head -n1)"
+
+          echo "Running JAR: $JAR"
           java -jar "$JAR"
