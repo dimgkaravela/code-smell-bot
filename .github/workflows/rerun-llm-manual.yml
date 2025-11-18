@@ -54,6 +54,7 @@ jobs:
 
           # keys (enable only the provider you use)
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          OPENAI_BASE_URL: "https://api.openai.com/v1"
           #CLAUDE_API_KEY: ${{ secrets.CLAUDE_API_KEY }}
           #DEEPSEEK_API_KEY: ${{ secrets.DEEPSEEK_API_KEY }}
         run: |
