@@ -18,11 +18,18 @@ public class LlmRouter {
                         model,
                         env("DEEPSEEK_BASE_URL", null)
                 );
-            default:
+                
+            case "openai":
                 return new OpenAIClient(
                         env("OPENAI_API_KEY", null),
                         model,
                         env("OPENAI_BASE_URL", null)
+                );
+            case "gemini":
+            default:
+                return new GeminiClient(
+                        env("GEMINI_API_KEY", null),
+                        model
                 );
         }
     }
