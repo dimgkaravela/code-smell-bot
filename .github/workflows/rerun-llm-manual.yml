@@ -8,15 +8,13 @@ on:
         required: true
         type: number
       provider:
-        description: "LLM provider (claude|openai|deepseek)"
+        description: "LLM provider (claude|openai|deepseek|gemini)"
         required: false
-        default: "openai"
+        default: "gemini"
       model:
         description: "LLM model name"
         required: false
-        # If you want 'max ChatGPT', keep gpt-5.
-        # If you prefer cheaper, use gpt-4.1-mini instead.
-        default: "gpt-5"
+        default: "gemini-2.5-flash-lite"
       max_files:
         description: "Max changed files to fetch"
         required: false
@@ -53,8 +51,9 @@ jobs:
           LLM_MODEL: ${{ inputs.model }}
 
           # keys (enable only the provider you use)
-          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
-          OPENAI_BASE_URL: "https://api.openai.com/v1"
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          #OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          #OPENAI_BASE_URL: "https://api.openai.com/v1"
           #CLAUDE_API_KEY: ${{ secrets.CLAUDE_API_KEY }}
           #DEEPSEEK_API_KEY: ${{ secrets.DEEPSEEK_API_KEY }}
         run: |
