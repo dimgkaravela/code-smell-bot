@@ -5,6 +5,11 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
+import dev.dimitra.bot.llm.LlmClient.Message;
+import dev.dimitra.bot.llm.LlmClient.Result;
+import dev.dimitra.bot.llm.LlmClient.Usage;
+
+
 import java.io.IOException;
 import java.net.URI;
 import java.net.http.*;
