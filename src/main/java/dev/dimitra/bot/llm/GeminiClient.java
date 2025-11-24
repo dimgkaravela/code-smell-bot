@@ -88,19 +88,6 @@ public class GeminiClient implements LlmClient {
         }
         body.set("contents", contents);
 
-        // Map options to Gemini-compatible fields
-        if (options != null) {
-            if (options.get("temperature") != null) {
-                double temp = ((Number) options.get("temperature")).doubleValue();
-                body.put("temperature", temp);
-            }
-            if (options.get("max_tokens") != null) {
-                int max = ((Number) options.get("max_tokens")).intValue();
-                // Gemini's field is maxOutputTokens
-                body.put("maxOutputTokens", max);
-            }
-        }
-
         String url = BASE_URL + "/" + model + ":generateContent?key=" + apiKey;
 
         HttpRequest req = HttpRequest.newBuilder()
