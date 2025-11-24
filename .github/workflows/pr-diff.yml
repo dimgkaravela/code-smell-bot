@@ -1,4 +1,4 @@
-name: PR Diff Collector (Day 3)
+name: PR Diff Collector
 
 on:
   pull_request:
@@ -37,11 +37,8 @@ jobs:
           MAX_FILES: "10"
         run: |
           set -e
-          JAR="$(ls -1 target/*-shaded.jar 2>/dev/null || true)"
-          if [ -z "$JAR" ]; then
-            JAR="$(ls -1 target/*.jar | head -n 1)"
-          fi
-          echo "Running: $JAR"
+          JAR="target/code-smell-bot-0.1.0-SNAPSHOT.jar"
+          echo "Running JAR: $JAR"
           java -jar "$JAR"
 
 
