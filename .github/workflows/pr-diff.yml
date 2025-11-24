@@ -35,6 +35,11 @@ jobs:
           POST_COMMENT: "true"
           FETCH_CONTENTS: "true"
           MAX_FILES: "10"
+
+          LLM_PROVIDER: gemini
+          GEMINI_MODEL: gemini-2.5-flash-lite
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          
         run: |
           set -e
           JAR="target/code-smell-bot-0.1.0-SNAPSHOT.jar"
