@@ -253,7 +253,7 @@ public class Main {
         return patch.length() <= maxChars ? patch : patch.substring(0, maxChars) + "\n... (truncated)";
     }
 
-    //let's test this 
+  
 
     // ---- Minimal DTOs (GitHub JSON mapping) ----
     @JsonIgnoreProperties(ignoreUnknown = true)
