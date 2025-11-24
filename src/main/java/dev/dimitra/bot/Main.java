@@ -232,6 +232,8 @@ public class Main {
         return v;
     }
 
+    //trigger the bot
+
     private static int intEnv(String key, int def) {
         String v = System.getenv(key);
         if (v == null || v.isBlank()) return def;
@@ -263,7 +265,7 @@ public class Main {
         public Integer changes;
         public String patch; // may be null for binary files
     }
-//trigger the bot
+
     static class JavaChanged {
         public String filename;
         public String status;
