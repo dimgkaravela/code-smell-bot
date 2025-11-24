@@ -33,7 +33,7 @@ jobs:
       - name: List target
         run: ls -lah target
 
-      - name: Run code smell bot (LLM)
+      - name: Run code smell bot (gemini)
         env:
           # --- GitHub context
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -44,8 +44,8 @@ jobs:
           MAX_FILES: "50"
 
           # --- LLM selection (pick one provider + key)
-          LLM_PROVIDER: openai            # claude | openai | deepseek
-          LLM_MODEL: gpt-4o-mini    # or your preferred model
+          LLM_PROVIDER: gemini            # claude | openai | deepseek
+          GEMINI_MODEL: gemini-2.5-flash-lite  # or your preferred model
           #CLAUDE_API_KEY: ${{ secrets.CLAUDE_API_KEY }}
           #OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
           #OPENAI_BASE_URL: "https://api.openai.com/v1"
@@ -57,11 +57,12 @@ jobs:
           # CLAUDE_API_VERSION: 2023-06-01
 
           # LLM chunking tuning (optional)
-          LLM_MAX_FILES_PER_CHUNK: "4"
-          LLM_MAX_PATCH_CHARS: "12000"
+          #LLM_MAX_FILES_PER_CHUNK: "4"
+          #LLM_MAX_PATCH_CHARS: "12000"
         run: |
           set -e
-          JAR="$(ls -1 target/*-shaded.jar | head -n1)"
+          JAR="target/code-smell-bot-0.1.0-SNAPSHOT.jar"
+          echo "Running: $JAR"
           java -jar "$JAR"
 
       - name: Upload diff artifact (for debugging)
