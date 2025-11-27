@@ -42,6 +42,11 @@ public class Main {
                 .build();
         ObjectMapper mapper = new ObjectMapper();
 
+         // Debug flag for LLM smells
+        boolean debugSmells = Boolean.parseBoolean(
+                System.getenv().getOrDefault("DEBUG_SMELLS", "false")
+        );
+
         // 1) Fetch changed files (single page up to maxFiles)
         int perPage = Math.min(100, Math.max(1, maxFiles));
         String url = String.format(
@@ -123,6 +128,12 @@ public class Main {
 
         String diffText = renderDiffForModel(repository, prNumber, javaFiles);
 
+         if (debugSmells) {
+            System.out.println("===== LLM PROMPT =====");
+            System.out.println(diffText);
+            System.out.println("===== END LLM PROMPT =====");
+        }
+        
         LlmClient llm = LlmRouter.fromEnv();
         LlmClient.Result llmResult = llm.chat(
                 systemPrompt,
@@ -131,6 +142,13 @@ public class Main {
         );
 
         String raw = llmResult.text().trim();
+
+        if (debugSmells) {
+            System.out.println("===== LLM RAW RESPONSE =====");
+            System.out.println(raw);
+            System.out.println("===== END LLM RAW RESPONSE =====");
+        }
+        
         String json = stripBackticksIfAny(raw);
 
         List<LlmFinding> findings;
@@ -138,6 +156,26 @@ public class Main {
             findings = mapper.readValue(json, new TypeReference<List<LlmFinding>>() {});
         } catch (Exception parseEx) {
             findings = List.of(); // model returned junk; continue gracefully
+            if (debugSmells) {
+                System.out.println("===== PARSE ERROR =====");
+                System.out.println("Failed to parse LLM JSON: " + parseEx.getMessage());
+                System.out.println("Original JSON string:");
+                System.out.println(json);
+                System.out.println("===== END PARSE ERROR =====");
+            }
+        }
+
+         if (debugSmells) {
+            try {
+                String findingsJson = mapper
+                        .writerWithDefaultPrettyPrinter()
+                        .writeValueAsString(findings);
+                System.out.println("===== PARSED SMELLS (OBJECT) =====");
+                System.out.println(findingsJson);
+                System.out.println("===== END PARSED SMELLS =====");
+            } catch (Exception e) {
+                System.out.println("[DEBUG] Failed to serialize findings: " + e.getMessage());
+            }
         }
 
         String md = renderMarkdown(findings);
@@ -148,10 +186,7 @@ public class Main {
             System.out.println(md);
         }
 
-        //debug mode
-        boolean debugSmells = Boolean.parseBoolean(
-            System.getenv().getOrDefault("DEBUG_SMELLS", "false")
-        );
+        
 
     } // <-- end main
 
