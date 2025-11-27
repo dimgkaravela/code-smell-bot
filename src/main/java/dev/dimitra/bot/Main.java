@@ -147,6 +147,12 @@ public class Main {
         } else {
             System.out.println(md);
         }
+
+        //debug mode
+        boolean debugSmells = Boolean.parseBoolean(
+            System.getenv().getOrDefault("DEBUG_SMELLS", "false")
+        );
+
     } // <-- end main
 
     // ---- Helpers ----
